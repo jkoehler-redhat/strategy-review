@@ -264,22 +264,57 @@ Include total portfolio size from Query 1. Frame as: "AICP owns {N} roadmap feat
 
 #### Section 2: What We've Delivered
 
-Resolved issues grouped by theme (from Query 3). For each theme:
-- Theme name as subheading
-- Count of resolved issues
-- 3-5 key items with outcome-focused descriptions
-- Jira links: `https://redhat.atlassian.net/browse/{KEY}`
+Partition resolved issues by issue type first, then by theme within each category. Use the `issuetype` field from Jira to classify:
 
-For component onboarding (CLONE) tickets, group separately:
-"Completed {N} component onboarding tasks for {Component A}, {Component B}, etc."
+**Category mapping:**
+
+| Jira Issue Type | Report Category |
+|----------------|-----------------|
+| Epic, Initiative | Strategic Initiatives |
+| Bug, Vulnerability, Weakness | Bug Fixes & Security |
+| Story, Task | Feature & Engineering Work |
+| Sub-task + "CLONE -" summaries | Component Onboarding & Operational |
+
+For each category, show a separate table or grouped list:
+
+**2a. Strategic Initiatives Delivered** (Epics/Initiatives resolved)
+- Table: Key | Title | Sub-Team
+- These represent completed strategic engineering objectives
+- 3-5 key items with outcome-focused descriptions
+
+**2b. Bug Fixes & Security** (Bugs/Vulnerabilities/Weaknesses resolved)
+- Summary count and severity breakdown
+- Group by theme (xKS, Gateway, Operator, Security/CVE, etc.)
+- Highlight CVE remediations separately
+
+**2c. Feature & Engineering Work** (Stories/Tasks resolved)
+- Group by theme using keyword matching
+- 3-5 key items per theme with outcome-focused descriptions
+
+**2d. Component Onboarding & Operational** (Sub-tasks, CLONE tickets)
+- Count and name the components onboarded
+- Group separately from engineering work
+
+All items include Jira links: `https://redhat.atlassian.net/browse/{KEY}`
 
 #### Section 3: What's In Flight
 
-Active issues by sub-team (from Query 2). For each team:
-- Team name and focus area as subheading
-- Count of active issues
-- Top 3-5 key items with brief descriptions
-- Include priority and assignee where relevant
+Partition active issues by issue type first, then by sub-team within each category. Same category mapping as Section 2:
+
+**3a. Strategic Initiatives In Flight** (Epics/Initiatives active)
+- Table: Key | Title | Status | Sub-Team | Priority | Assignee
+- These are the major engineering objectives currently being driven
+
+**3b. Active Bugs** (Bugs/Vulnerabilities/Weaknesses in progress)
+- Table with severity/priority
+- Highlight Blocker/Critical bugs
+
+**3c. Feature & Engineering Work** (Stories/Tasks in progress)
+- By sub-team, top 3-5 key items per team
+- Include priority and assignee
+
+**3d. Operational** (Sub-tasks, onboarding)
+- Brief count and notable items
 
 #### Section 4: Customer Signal
 
