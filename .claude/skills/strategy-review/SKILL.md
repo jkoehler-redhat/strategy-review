@@ -368,8 +368,28 @@ def shade_cells(row, color_hex):
 
 - Word: `docs/strategy/{YYYY-MM-DD}_strategy_review.docx`
 - Markdown: `docs/strategy/{YYYY-MM-DD}_strategy_review.md`
+- Google Doc: `https://docs.google.com/document/d/1kU_huAxuzmx3wMm34n2FsleMLWs_0TC5/edit`
 
 Where `{YYYY-MM-DD}` is today's date.
+
+### Google Doc Upload
+
+After generating the local file, push it to the shared Google Doc:
+
+```bash
+gws drive files update \
+  --params '{"fileId":"1kU_huAxuzmx3wMm34n2FsleMLWs_0TC5"}' \
+  --upload "docs/strategy/{YYYY-MM-DD}_strategy_review.docx" \
+  --upload-content-type "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+```
+
+**Important**: The `--upload` path must be relative to the current working directory (gws rejects absolute paths outside cwd). Copy the file into cwd if needed before uploading.
+
+**Scope requirement**: The `gws` tool must have `https://www.googleapis.com/auth/drive` scope (not just `drive.readonly`). If upload fails with `insufficientPermissions`, re-auth with write scopes:
+
+```bash
+gws auth login --scope "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/calendar.readonly"
+```
 
 After generation, display a summary of findings to the user and ask:
 1. "Would you like to revise anything?"
