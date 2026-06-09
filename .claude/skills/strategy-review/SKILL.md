@@ -232,7 +232,77 @@ Fields: key, summary, status, assignee, labels
 
 ## Output Format
 
-### 7-Section Document
+### 8-Section Document
+
+#### Executive Summary (Section 0)
+
+A bullet-point overview at the top of the document with 5-8 data-backed bullets. Each bullet references a detail section via an in-document bookmark link (clickable in Word). The summary gives leadership the full picture in 30 seconds — the rest of the document is supporting detail.
+
+**Bullet structure** — derive from collected data, covering these areas:
+
+1. **Portfolio scope** — "{N} roadmap features owned, {M} cross-team support items, {P} open engineering issues across 3 sub-teams" → links to Section 1
+2. **Delivery velocity** — "{X} issues resolved in {N} days: {A} strategic initiatives, {B} bugs/security fixes, {C} feature stories, {D} operational tasks" → links to Section 2
+3. **Top delivery highlight** — One sentence on the most impactful completed initiative or theme → links to Section 2
+4. **In-flight snapshot** — "{Y} issues actively in progress across Forge ({f}), Compass ({c}), Heimdall ({h})" → links to Section 3
+5. **Blockers & risks** — "{Z} blocker/critical issues open" with the top 1-2 named → links to Section 6
+6. **Customer signal** — Brief framing of direct vs indirect customer impact → links to Section 4
+7. **Key opportunity** — One sentence on the biggest opportunity identified → links to Section 5
+8. **Top ask** — The single most important leadership ask → links to Section 6
+
+Not every bullet is required — include only those backed by meaningful data. Minimum 5 bullets.
+
+**Word document implementation:**
+
+Each detail section heading gets a bookmark (e.g., `section_1_what_we_own`, `section_2_delivered`). Each executive summary bullet includes a hyperlink to the relevant bookmark so readers can click to jump to details.
+
+```python
+from docx.oxml.ns import qn, nsdecls
+from docx.oxml import parse_xml, OxmlElement
+
+def add_bookmark(paragraph, bookmark_name):
+    """Add a bookmark anchor to a paragraph (the target)."""
+    tag = paragraph._p
+    bookmark_start = OxmlElement('w:bookmarkStart')
+    bookmark_start.set(qn('w:id'), str(hash(bookmark_name) % 10000))
+    bookmark_start.set(qn('w:name'), bookmark_name)
+    bookmark_end = OxmlElement('w:bookmarkEnd')
+    bookmark_end.set(qn('w:id'), str(hash(bookmark_name) % 10000))
+    tag.insert(0, bookmark_start)
+    tag.append(bookmark_end)
+
+def add_internal_hyperlink(paragraph, bookmark_name, link_text):
+    """Add a clickable hyperlink within the document to a bookmark."""
+    hyperlink = OxmlElement('w:hyperlink')
+    hyperlink.set(qn('w:anchor'), bookmark_name)
+    run = OxmlElement('w:r')
+    rPr = OxmlElement('w:rPr')
+    color = OxmlElement('w:color')
+    color.set(qn('w:val'), '0563C1')
+    underline = OxmlElement('w:u')
+    underline.set(qn('w:val'), 'single')
+    rPr.append(color)
+    rPr.append(underline)
+    run.append(rPr)
+    text = OxmlElement('w:t')
+    text.text = link_text
+    run.append(text)
+    hyperlink.append(run)
+    paragraph._p.append(hyperlink)
+```
+
+**Bookmark names:**
+
+| Section | Bookmark |
+|---------|----------|
+| 1. What We Own | `section_1_what_we_own` |
+| 2. What We've Delivered | `section_2_delivered` |
+| 3. What's In Flight | `section_3_in_flight` |
+| 4. Customer Signal | `section_4_customer_signal` |
+| 5. Where We See Opportunity | `section_5_opportunity` |
+| 6. What We Need | `section_6_what_we_need` |
+| 7. Next Steps | `section_7_next_steps` |
+
+Each section heading paragraph must call `add_bookmark()` with its bookmark name. Each executive summary bullet uses `add_internal_hyperlink()` to append a " → See details" link pointing to the relevant bookmark.
 
 #### Section 1: What We Own
 
