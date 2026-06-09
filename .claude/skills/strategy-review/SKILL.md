@@ -388,7 +388,13 @@ gws drive files update \
 **Scope requirement**: The `gws` tool must have `https://www.googleapis.com/auth/drive` scope (not just `drive.readonly`). If upload fails with `insufficientPermissions`, re-auth with write scopes:
 
 ```bash
-gws auth login --scope "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/calendar.readonly"
+gws auth login --scopes "https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/documents,https://www.googleapis.com/auth/calendar.readonly"
+```
+
+If it still fails after re-auth, delete the stale token cache and retry:
+
+```bash
+rm -f ~/.config/gws/token_cache.json
 ```
 
 After generation, display a summary of findings to the user and ask:
