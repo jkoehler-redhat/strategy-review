@@ -304,39 +304,25 @@ def add_internal_hyperlink(paragraph, bookmark_name, link_text):
 
 Each section heading paragraph must call `add_bookmark()` with its bookmark name. Each executive summary bullet uses `add_internal_hyperlink()` to append a " → See details" link pointing to the relevant bookmark.
 
+### Document Structure Principle
+
+**Narrative body, reference appendix.** Sections 1-7 are written as a briefing — concise narratives, outcome-focused bullet points, and summary counts. No raw Jira issue tables in the body. All issue-level detail (keys, titles, assignees) goes in a Reference Appendix at the end, organized by category. Each body section ends with a note pointing to the appendix.
+
+Page breaks between: Executive Summary → Sections 1-3 → Section 5 → Appendix.
+
 #### Section 1: What We Own
 
-Two parts: **Owned roadmap features** (from spreadsheet Roadmap tab, Ownership = "AICP") and **engineering portfolio** (from Jira queries).
+Narrative intro: "AICP owns {N} roadmap features and provides platform support for {M} cross-team initiatives. The engineering portfolio comprises {P} open issues distributed across three sub-teams."
 
-**Owned Roadmap Features** — table from spreadsheet:
+Three parts with **curated tables** (these are roadmap/summary tables, not raw Jira dumps):
 
-| Feature | Title | Status | Release | Sub-Team | Priority | Effort |
-|---------|-------|--------|---------|----------|----------|--------|
-| {key} | {title} | {status} | {release} | {team} | {priority} | {effort} |
-
-**Platform Support** — features where Ownership = "Support" (AICP reviews/consults but doesn't own):
-
-| Feature | Title | Status | AICP Work | Sub-Team |
-|---------|-------|--------|-----------|----------|
-| {key} | {title} | {status} | {supporting_work} | {team} |
-
-**Engineering Portfolio** — sub-team table from Jira data:
-
-| Sub-Team | Focus Area | In-Flight | Resolved ({N}d) |
-|----------|-----------|-----------|-----------------|
-| Forge | xKS Expansion, GitOps & CI/CD | {count} | {count} |
-| Compass | E2E Stability, QE & Observability | {count} | {count} |
-| Heimdall | Security, Gateway & Authentication | {count} | {count} |
-| Unassigned | No sub-team label | {count} | {count} |
-| **Total** | | **{sum}** | **{sum}** |
-
-Include total portfolio size from Query 1. Frame as: "AICP owns {N} roadmap features and supports {M} cross-team initiatives, with {P} open engineering issues across {Q} sub-teams."
+1. **Owned Roadmap Features** — table from spreadsheet (Ownership = "AICP")
+2. **Platform Support Engagements** — table from spreadsheet (Ownership = "Support")
+3. **Engineering Portfolio by Sub-Team** — aggregated counts table (Forge/Compass/Heimdall/Unassigned with in-flight and resolved counts)
 
 #### Section 2: What We've Delivered
 
-Partition resolved issues by issue type first, then by theme within each category. Use the `issuetype` field from Jira to classify:
-
-**Category mapping:**
+Narrative summary of outcomes, NOT a list of tickets. For each issue type category:
 
 | Jira Issue Type | Report Category |
 |----------------|-----------------|
@@ -345,81 +331,78 @@ Partition resolved issues by issue type first, then by theme within each categor
 | Story, Task | Feature & Engineering Work |
 | Sub-task + "CLONE -" summaries | Component Onboarding & Operational |
 
-For each category, show a separate table or grouped list:
+For each category:
+- **Strategic**: Count + bullet points grouped by theme with outcome descriptions (not ticket titles)
+- **Bug Fixes**: Count + theme breakdown with CVE count callout per theme
+- **Feature Work**: Count + top themes with representative outcome per theme
+- **Operational**: Count + component onboarding summary
 
-**2a. Strategic Initiatives Delivered** (Epics/Initiatives resolved)
-- Table: Key | Title | Sub-Team
-- These represent completed strategic engineering objectives
-- 3-5 key items with outcome-focused descriptions
-
-**2b. Bug Fixes & Security** (Bugs/Vulnerabilities/Weaknesses resolved)
-- Summary count and severity breakdown
-- Group by theme (xKS, Gateway, Operator, Security/CVE, etc.)
-- Highlight CVE remediations separately
-
-**2c. Feature & Engineering Work** (Stories/Tasks resolved)
-- Group by theme using keyword matching
-- 3-5 key items per theme with outcome-focused descriptions
-
-**2d. Component Onboarding & Operational** (Sub-tasks, CLONE tickets)
-- Count and name the components onboarded
-- Group separately from engineering work
-
-All items include Jira links: `https://redhat.atlassian.net/browse/{KEY}`
+End with: "Full issue-level detail is available in the Reference Appendix."
 
 #### Section 3: What's In Flight
 
-Partition active issues by issue type first, then by sub-team within each category. Same category mapping as Section 2:
+Narrative by sub-team (NOT by issue type — team is the primary lens for in-flight). For each sub-team:
+- Team name, focus area, and count as subheading
+- Top 3-4 items shown as outcome-focused bullets (prioritize strategic initiatives and blocker/critical items)
+- No raw Jira tables
 
-**3a. Strategic Initiatives In Flight** (Epics/Initiatives active)
-- Table: Key | Title | Status | Sub-Team | Priority | Assignee
-- These are the major engineering objectives currently being driven
-
-**3b. Active Bugs** (Bugs/Vulnerabilities/Weaknesses in progress)
-- Table with severity/priority
-- Highlight Blocker/Critical bugs
-
-**3c. Feature & Engineering Work** (Stories/Tasks in progress)
-- By sub-team, top 3-5 key items per team
-- Include priority and assignee
-
-**3d. Operational** (Sub-tasks, onboarding)
-- Brief count and notable items
+End with: "Complete in-flight issue listings are in the Reference Appendix."
 
 #### Section 4: Customer Signal
 
-From Queries 4 and 5:
-- RHOAIENG customer issues (if any) — likely zero for AICP component
-- RHAISTRAT field requests and customer-driven features
-- Be honest: "AICP component has {N} direct customer-labeled issues. Customer impact is typically indirect — AICP platform stability underpins all RHOAI components."
+Narrative framing of direct vs indirect customer impact:
+- State AICP direct customer count (typically zero) with honest explanation
+- RHAISTRAT customer items: total count + how many touch AICP platform capabilities
+- Cross-reference RHAISTRAT items against AICP platform themes (auth, multi-cloud, operator, security, observability, batch/kueue, gitops) — list the AICP-relevant ones by theme
+- No raw issue table — reference appendix has the full list
 
 #### Section 5: Where We See Opportunity
 
-Derived analysis — not a direct Jira query. Synthesize from:
-- Unassigned work (Query 7) — areas without ownership
-- Themes with high resolved counts but no strategic alignment
-- RHAISTRAT features that could benefit from AICP investment
-- Gaps between team capacity and incoming work
+**Data-driven strategic analysis** — not a restatement of other sections. Derive from cross-referencing:
 
-Frame as actionable opportunities, not complaints.
+1. **Customer demand → AICP investment**: Cross-reference RHAISTRAT customer-labeled items against AICP platform themes. Cluster by theme and surface where customer demand is highest. Frame as: investment here unblocks multiple downstream teams.
+
+2. **Owned features without active work**: Compare owned roadmap features (spreadsheet) against in-flight issues (Query 2). Features with status "In Progress" or "New" but no matching Jira engineering work are stalled — flag for resourcing or reprioritization.
+
+3. **Recurring bug themes suggesting underinvestment**: Themes with disproportionately high bug volume suggest areas where proactive engineering (test coverage, architecture) could reduce maintenance burden.
+
+4. **Ownership gaps**: In-flight issues without sub-team labels (Query 7) represent work happening outside the team structure.
+
+Frame each opportunity as: what it is, why it matters, what AICP would need to do.
 
 #### Section 6: What We Need
 
-Capacity, ownership, and process asks for leadership. Derive from:
-- Unassigned issue count and themes
-- Blocker/critical issues needing escalation (Query 6)
-- Resource constraints visible in the data
-- Include user-provided context from Prompt 3
+**Asks tied to opportunities.** Each need connects back to data from other sections:
+
+1. **Blocker resolution support** — count + framing of delivery risk
+2. **Roadmap prioritization review** — stalled features need resourcing, descoping, or dependency unblocking
+3. **Strategic alignment on customer-driven work** — which RHAISTRAT customer items should become AICP roadmap commitments
+4. **Triage support** — unassigned issues need sub-team assignment
+
+Include user-provided context from Prompt 3.
 
 #### Section 7: Next Steps
 
-Action/timeline/owner table:
+Action/timeline/owner table derived from the needs above. Each action is specific and tied to a data point.
 
-| Action | Owner | Timeline |
-|--------|-------|----------|
-| {action item} | {name or team} | {date or "Next sprint"} |
+### Reference Appendix
 
-Derive from blockers needing resolution, unassigned work needing triage, and upcoming milestones visible in the data.
+All raw Jira issue tables go here, organized as:
+
+| Section | Content |
+|---------|---------|
+| A1 | Strategic Initiatives Delivered |
+| A2 | Bug Fixes & Security Resolved |
+| A3 | Feature & Engineering Work Resolved |
+| A4 | Operational Tasks Resolved |
+| B1 | Strategic Initiatives In Flight |
+| B2 | Active Bugs |
+| B3 | Feature Work In Flight |
+| B4 | Operational In Flight |
+| C | Blocker & Critical Issues |
+| D | RHAISTRAT Customer & Field Items (with AICP-relevance flag) |
+
+Each appendix table uses full Jira keys, full titles (no truncation), and standard Red Hat red headers.
 
 ## Word Document Generation
 
