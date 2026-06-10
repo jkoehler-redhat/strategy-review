@@ -40,8 +40,9 @@ Options:
 Question: "What output format?"
 Options:
   1. Word document (.docx) [default]
-  2. Markdown (.md)
-  3. Both
+  2. PowerPoint deck (.pptx)
+  3. Both Word + PowerPoint
+  4. Markdown (.md)
 ```
 
 ### Prompt 3: Additional Context
@@ -452,9 +453,144 @@ def shade_cells(row, color_hex):
         cell._tc.get_or_add_tcPr().append(shading)
 ```
 
+## PowerPoint Deck Generation
+
+When the user selects PowerPoint output, generate an 8-slide widescreen leadership deck using `python-pptx`.
+
+### python-pptx Setup
+
+On macOS managed Python environments, `python-pptx` may not be on the default path. Add the homebrew site-packages:
+
+```python
+import sys
+sys.path.insert(0, '/opt/homebrew/lib/python3.13/site-packages')
+from pptx import Presentation
+from pptx.util import Inches, Pt, Emu
+from pptx.dml.color import RGBColor
+from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+from pptx.enum.shapes import MSO_SHAPE
+```
+
+If import fails, install: `pip3 install --break-system-packages python-pptx`
+
+### Slide Layout
+
+Widescreen 16:9 (13.333 x 7.5 inches). All slides use blank layout with a thin red (#CC0000) bar at the top (0.08" tall). Red Hat branding colors:
+
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Red Hat Red | #CC0000 | Top bar, KPI numbers, table headers, accent elements |
+| Dark Gray | #333333 | Title text, body text |
+| Medium Gray | #666666 | Subtitles, labels |
+| White | #FFFFFF | Text on red backgrounds |
+| Light Gray BG | #F2F2F2 | KPI boxes, alternating table rows |
+
+### 8-Slide Structure
+
+| Slide | Title | Content |
+|-------|-------|---------|
+| 1 | Title | "AI Core Platform" / "Strategy Review" / date + lookback period / "Red Hat OpenShift AI" |
+| 2 | Executive Summary | Bullet list with bold prefixes matching the Word doc executive summary bullets (Portfolio, Delivered, In Flight, Risks, Customer, Gap, Opportunity) |
+| 3 | What We Own | 4 KPI boxes (Owned Features, Support Engagements, Open Issues, Sub-Teams) + sub-team summary table |
+| 4 | What We've Delivered | 4 KPI boxes (Strategic, Bug/Security, Feature, Operational) + top theme bullets |
+| 5 | What's In Flight | 3-column layout — Forge/Compass/Heimdall with red header boxes, focus area subtitle, and top 4 items per team (prioritize strategic + blocker/critical) |
+| 6 | Customer Signal | Narrative text + bullet list: direct count, RHAISTRAT total, AICP-relevant count, top 4 AICP-relevant items with theme tags |
+| 7 | Opportunities | Bullet list: customer demand clusters (top 3 themes), stalled features count, bug hotspot theme, ownership gaps |
+| 8 | What We Need & Next Steps | Needs as bullet list (top half) + action/owner/timeline table (bottom half) |
+
+### Helper Functions
+
+```python
+RED = RGBColor(0xCC, 0x00, 0x00)
+DARK_GRAY = RGBColor(0x33, 0x33, 0x33)
+MED_GRAY = RGBColor(0x66, 0x66, 0x66)
+WHITE = RGBColor(0xFF, 0xFF, 0xFF)
+LIGHT_GRAY_BG = RGBColor(0xF2, 0xF2, 0xF2)
+
+def add_slide(prs, title_text=None):
+    """Blank slide with red top bar and optional title."""
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), prs.slide_width, Inches(0.08))
+    shape.fill.solid(); shape.fill.fore_color.rgb = RED; shape.line.fill.background()
+    if title_text:
+        txBox = slide.shapes.add_textbox(Inches(0.6), Inches(0.3), Inches(12), Inches(0.7))
+        tf = txBox.text_frame; tf.word_wrap = True
+        p = tf.paragraphs[0]
+        run = p.add_run(); run.text = title_text
+        run.font.size = Pt(28); run.font.bold = True; run.font.color.rgb = DARK_GRAY; run.font.name = "Calibri"
+    return slide
+
+def add_kpi_boxes(slide, kpis, top=1.3):
+    """KPI number boxes. kpis = [(number, label), ...]"""
+    n = len(kpis); box_width = 2.5; gap = 0.3
+    total_width = n * box_width + (n-1) * gap
+    start_x = (13.333 - total_width) / 2
+    for i, (number, label) in enumerate(kpis):
+        x = start_x + i * (box_width + gap)
+        shape = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(top), Inches(box_width), Inches(1.5))
+        shape.fill.solid(); shape.fill.fore_color.rgb = LIGHT_GRAY_BG
+        shape.line.color.rgb = RGBColor(0xDD, 0xDD, 0xDD); shape.line.width = Pt(1)
+        txBox = slide.shapes.add_textbox(Inches(x), Inches(top + 0.15), Inches(box_width), Inches(0.8))
+        p = txBox.text_frame.paragraphs[0]; p.alignment = PP_ALIGN.CENTER
+        run = p.add_run(); run.text = str(number)
+        run.font.size = Pt(36); run.font.bold = True; run.font.color.rgb = RED; run.font.name = "Calibri"
+        txBox2 = slide.shapes.add_textbox(Inches(x), Inches(top + 0.85), Inches(box_width), Inches(0.6))
+        p2 = txBox2.text_frame.paragraphs[0]; p2.alignment = PP_ALIGN.CENTER
+        run2 = p2.add_run(); run2.text = label
+        run2.font.size = Pt(13); run2.font.color.rgb = MED_GRAY; run2.font.name = "Calibri"
+
+def add_bullet_list(slide, items, left=0.6, top=1.2, width=12, height=5.5, size=16):
+    """Bullet list with optional bold prefix. items = [(bold_part, rest_text), ...]"""
+    txBox = slide.shapes.add_textbox(Inches(left), Inches(top), Inches(width), Inches(height))
+    tf = txBox.text_frame; tf.word_wrap = True
+    for i, (bold_part, rest) in enumerate(items):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        p.space_after = Pt(6)
+        if bold_part:
+            run = p.add_run(); run.text = bold_part
+            run.font.size = Pt(size); run.font.bold = True; run.font.color.rgb = DARK_GRAY; run.font.name = "Calibri"
+        run = p.add_run(); run.text = rest
+        run.font.size = Pt(size); run.font.color.rgb = DARK_GRAY; run.font.name = "Calibri"
+
+def add_table(slide, headers, rows, left=0.6, top=2.0, width=12, row_height=0.35):
+    """Table with red headers and alternating row shading."""
+    tbl_shape = slide.shapes.add_table(len(rows)+1, len(headers), Inches(left), Inches(top), Inches(width), Inches(row_height*(len(rows)+1)))
+    table = tbl_shape.table
+    for ci, h in enumerate(headers):
+        cell = table.cell(0, ci); cell.text = h
+        cell.fill.solid(); cell.fill.fore_color.rgb = RED
+        for p in cell.text_frame.paragraphs:
+            for r in p.runs: r.font.color.rgb = WHITE; r.font.bold = True; r.font.size = Pt(12); r.font.name = "Calibri"
+        cell.vertical_anchor = MSO_ANCHOR.MIDDLE
+    for ri, row_data in enumerate(rows):
+        for ci, val in enumerate(row_data):
+            cell = table.cell(ri+1, ci); cell.text = str(val)
+            if ri % 2 == 1: cell.fill.solid(); cell.fill.fore_color.rgb = LIGHT_GRAY_BG
+            for p in cell.text_frame.paragraphs:
+                for r in p.runs: r.font.size = Pt(11); r.font.color.rgb = DARK_GRAY; r.font.name = "Calibri"
+            cell.vertical_anchor = MSO_ANCHOR.MIDDLE
+```
+
+### Slide 5 Detail: Three-Column Team Layout
+
+For the "What's In Flight" slide, use a 3-column layout instead of a table:
+
+```python
+col_width = 3.8; gap = 0.3; start_x = 0.6
+for idx, (team, focus) in enumerate([("Forge", "xKS, GitOps & CI/CD"), ("Compass", "QE & Observability"), ("Heimdall", "Security & Gateway")]):
+    x = start_x + idx * (col_width + gap)
+    # Red header box with team name and count
+    shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(x), Inches(1.2), Inches(col_width), Inches(0.5))
+    shape.fill.solid(); shape.fill.fore_color.rgb = RED; shape.line.fill.background()
+    # ... add team name in white, focus area in italic gray below, then top 4 items as bullet text
+```
+
+Prioritize items: strategic initiatives first, then blocker/critical priority, then remaining. Show item summary (truncated to 55 chars) with priority tag.
+
 ## Output Locations
 
 - Word: `docs/strategy/{YYYY-MM-DD}_strategy_review.docx`
+- PowerPoint: `docs/strategy/{YYYY-MM-DD}_strategy_review.pptx`
 - Markdown: `docs/strategy/{YYYY-MM-DD}_strategy_review.md`
 - Google Doc: `https://docs.google.com/document/d/1kU_huAxuzmx3wMm34n2FsleMLWs_0TC5/edit`
 
@@ -524,6 +660,11 @@ Before presenting the report, verify:
 ### python-docx not available
 - Install: `pip install python-docx`
 - The `lxml` dependency is required for table border/shading XML manipulation
+
+### python-pptx not available or import fails
+- On macOS managed Python, add to script: `sys.path.insert(0, '/opt/homebrew/lib/python3.13/site-packages')`
+- Install: `pip3 install --break-system-packages python-pptx`
+- PEP 668 blocks `pip install --user` on managed environments — use `--break-system-packages`
 
 ### No Crucible sub-team label
 - Despite documentation listing 4 sub-teams, `aicp-team-crucible` does not exist in Jira data
