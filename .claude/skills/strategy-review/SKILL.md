@@ -490,13 +490,82 @@ Widescreen 16:9 (13.333 x 7.5 inches). All slides use blank layout with a thin r
 | Slide | Title | Content |
 |-------|-------|---------|
 | 1 | Title | "AI Core Platform" / "Strategy Review" / date + lookback period / "Red Hat OpenShift AI" |
-| 2 | Executive Summary | Bullet list with bold prefixes matching the Word doc executive summary bullets (Portfolio, Delivered, In Flight, Risks, Customer, Gap, Opportunity) |
+| 2 | Executive Summary | Full-sentence bullets with bold labels — Portfolio, Delivered, In Flight, Blockers, Customer Signal, Gap (see detail below) |
 | 3 | What We Own | 4 KPI boxes (Owned Features, Support Engagements, Open Issues, Sub-Teams) + sub-team summary table |
-| 4 | What We've Delivered | 4 KPI boxes (Strategic, Bug/Security, Feature, Operational) + top theme bullets |
-| 5 | What's In Flight | 3-column layout — Forge/Compass/Heimdall with red header boxes, focus area subtitle, and top 4 items per team (prioritize strategic + blocker/critical) |
-| 6 | Customer Signal | Narrative text + bullet list: direct count, RHAISTRAT total, AICP-relevant count, top 4 AICP-relevant items with theme tags |
-| 7 | Opportunities | Bullet list: customer demand clusters (top 3 themes), stalled features count, bug hotspot theme, ownership gaps |
-| 8 | What We Need & Next Steps | Needs as bullet list (top half) + action/owner/timeline table (bottom half) |
+| 4 | What We've Delivered | 4 KPI boxes (Strategic Epics, Bug/Security, Feature, Operational) + top 5 themes by volume with bug counts |
+| 5 | What's In Flight | 3-column layout — Forge/Compass/Heimdall with red header boxes, focus area subtitle, top 4 items tagged ★ strategic / ! blocker-critical / · other |
+| 6 | Customer Signal | Bullet list: direct AICP count + RHAISTRAT total + AICP-relevant count + top 5 AICP-relevant items with keys and theme tags |
+| 7 | Strategic Opportunities | 3-column table: Opportunity / Current State (from Jira) / Why It Matters (from RHAISTRAT descriptions) |
+| 8 | What We Need & Next Steps | Data-backed needs bullets + placeholder action table for owner/timeline (filled in before meeting) |
+
+### Slide 2: Executive Summary Detail
+
+Each bullet is a **full sentence**, not a data dump. Bold label followed by narrative. Use this structure:
+
+```
+Portfolio  — "{N} owned roadmap features and {M} cross-team support engagements, backed by {P} open engineering issues across Forge ({f}), Compass ({c}), and Heimdall ({h}) in-flight today."
+
+Delivered ({N}d)  — "{X} issues closed — {A} strategic epics, {B} bugs and CVEs, {C} feature stories. Highest volume: {top 3 themes with counts}."
+
+In Flight  — "{Y} issues actively in progress — {A} strategic initiatives, {B} features, {C} bugs."
+
+Blockers  — "{N} blocker-priority and {M} critical issues remain open. Top blockers: {clean name 1}; {clean name 2}."
+
+Customer Signal  — "Platform impact is primarily indirect — {N} of {M} open RHAISTRAT field requests map directly to AICP platform capabilities."
+
+Gaps  — "{N} owned roadmap features have no active engineering work, including DRA and multi-tenancy — both critical for {release} delivery." (only if stalled_features > 0)
+```
+
+**Blocker name cleaning**: Strip `[tag]` prefixes, "- N week notice!" suffixes, replace " — " with ": ". Truncate to 60 chars.
+
+### Slide 7: Strategic Opportunities — RHAISTRAT Description Mining
+
+The "Why It Matters" column is derived from the **actual RHAISTRAT issue descriptions**, not invented. For each owned roadmap feature, fetch the full description via REST API and extract:
+- **Affected Customers** section — named accounts, segments, deal counts
+- **Problem Statement** — what breaks without AICP investment
+- **Business Alignment** — named deals, POCs, urgency signals
+
+```python
+def extract_text(node):
+    """Recursively extract plain text from Jira ADF description node."""
+    if not node: return ''
+    if isinstance(node, str): return node
+    t = node.get('type', '')
+    content = node.get('content', [])
+    if t == 'text': return node.get('text', '')
+    if t in ('paragraph', 'heading'): return ' '.join(extract_text(c) for c in content).strip() + '\n'
+    if t in ('bulletList', 'orderedList'): return ''.join(extract_text(c) for c in content)
+    if t == 'listItem': return '• ' + ' '.join(extract_text(c) for c in content).strip() + '\n'
+    if t == 'hardBreak': return '\n'
+    return ''.join(extract_text(c) for c in content)
+
+def get_strat_description(key):
+    url = f"{BASE_URL}/rest/api/3/issue/{key}?fields=summary,status,priority,description"
+    req = urllib.request.Request(url, headers={"Authorization": f"Basic {AUTH}", "Content-Type": "application/json"})
+    with urllib.request.urlopen(req) as r:
+        data = json.loads(r.read())
+    return extract_text(data["fields"].get("description") or {})
+```
+
+Fetch descriptions for each owned roadmap feature's RHAISTRAT key. Parse the text to pull the most useful 1–2 sentences for the "Why It Matters" column. Look for: named customers, deal counts, geographic segments, competitive risk, and what is blocked without the capability.
+
+**Example framing (derived from real description text):**
+
+| Opportunity | Current State | Why It Matters |
+|-------------|---------------|----------------|
+| GPUaaS / DRA | RHAISTRAT-1470 \| In Progress \| 0 active / 2 backlog | 5+ EMEA opportunities on OCP 4.21 blocked by whole-GPU-only allocation. RHOAI components (KServe, notebooks, KubeRay) must emit DRA ResourceClaims to unlock GPU fractions, sharing, and multi-device topology. AICP owns this — engineering investment is critical path. |
+| Multi-tenancy | RHAISTRAT-1471 \| Critical \| 0 active engineering | 20+ Nordic CCSPs (Atea, Advania, Volvo, AI Sweden) cannot commercialize RHOAI AI Factory without tenant isolation. BBVA, Telenor, Aramco, SWIFT need chargeback and namespace governance. Competitive gap vs VMware. No engineering work started. |
+| Kueue / Batch | RHAISTRAT-1477 \| 4 active / 13 backlog | Truist (active Spark PoC) and BNY named Kueue/Spark as a blocker for at-scale adoption. GPU contention and underutilization block financial services customers without it. |
+| xKS / Multi-Cloud | RHAISTRAT-1209 \| 0 active / 12 backlog | 2 customers (AKS, Coreweave) waiting on GA of llm-d distributed inference on non-OCP Kubernetes. Auth/gateway for xKS unresolved — blocking 3.5 GA. |
+
+### Slide 8: What We Need & Next Steps
+
+Needs bullets come **only from data**:
+- Blocker count (if > 0)
+- Stalled owned features count (if > 0)
+- Unassigned in-flight count (if > 0)
+
+Next Steps table uses **placeholder rows** — the manager fills in owner and timeline before the meeting. Do not invent owners or timelines.
 
 ### Helper Functions
 
