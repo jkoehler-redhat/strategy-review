@@ -455,7 +455,7 @@ def shade_cells(row, color_hex):
 
 ## PowerPoint Deck Generation
 
-When the user selects PowerPoint output, generate an 8-slide widescreen leadership deck using `python-pptx`.
+When the user selects PowerPoint output, generate a 14-slide widescreen leadership deck using `python-pptx`. The reference format is the Model Serving & Safety team's strategy review deck presented to Sherard Griffin.
 
 ### python-pptx Setup
 
@@ -465,7 +465,7 @@ On macOS managed Python environments, `python-pptx` may not be on the default pa
 import sys
 sys.path.insert(0, '/opt/homebrew/lib/python3.13/site-packages')
 from pptx import Presentation
-from pptx.util import Inches, Pt, Emu
+from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
@@ -475,183 +475,157 @@ If import fails, install: `pip3 install --break-system-packages python-pptx`
 
 ### Slide Layout
 
-Widescreen 16:9 (13.333 x 7.5 inches). All slides use blank layout with a thin red (#CC0000) bar at the top (0.08" tall). Red Hat branding colors:
+Widescreen 16:9 (13.333 x 7.5 inches). Content slides use blank layout with a thin red (#CC0000) bar at the top (0.07" tall). Section divider slides are full-bleed dark gray with a red left accent bar.
 
 | Color | Hex | Usage |
 |-------|-----|-------|
-| Red Hat Red | #CC0000 | Top bar, KPI numbers, table headers, accent elements |
-| Dark Gray | #333333 | Title text, body text |
-| Medium Gray | #666666 | Subtitles, labels |
-| White | #FFFFFF | Text on red backgrounds |
-| Light Gray BG | #F2F2F2 | KPI boxes, alternating table rows |
+| Red Hat Red | #CC0000 | Top bar, headers, table headers, accent bar, bet column labels |
+| Dark Gray | #333333 | Title text, body text, section bg |
+| Medium Gray | #666666 | Subtitles, labels, breadcrumb text |
+| White | #FFFFFF | Text on red/dark backgrounds |
+| Light Gray | #F2F2F2 | Alternating table rows |
 
-### 8-Slide Structure
+### 14-Slide Structure
+
+Three sections separated by full-bleed section divider slides:
+
+**Section 1: Portfolio Map** — What AICP owns, what we support, and where we're investing in platform quality
 
 | Slide | Title | Content |
 |-------|-------|---------|
-| 1 | Title | "AI Core Platform" / "Strategy Review" / date + lookback period / "Red Hat OpenShift AI" |
-| 2 | Executive Summary | Full-sentence bullets with bold labels — Portfolio, Delivered, In Flight, Blockers, Customer Signal, Gap (see detail below) |
-| 3 | What We Own | 4 KPI boxes (Owned Features, Support Engagements, Open Issues, Sub-Teams) + sub-team summary table |
-| 4 | What We've Delivered | 4 KPI boxes (Strategic Epics, Bug/Security, Feature, Operational) + top 5 themes by volume with bug counts |
-| 5 | What's In Flight | 3-column layout — Forge/Compass/Heimdall with red header boxes, focus area subtitle, top 4 items tagged ★ strategic / ! blocker-critical / · other |
-| 6 | Customer Signal | Bullet list: direct AICP count + RHAISTRAT total + AICP-relevant count + top 5 AICP-relevant items with keys and theme tags |
-| 7 | Strategic Opportunities | 3-column table: Opportunity / Current State (from Jira) / Why It Matters (from RHAISTRAT descriptions) |
-| 8 | What We Need & Next Steps | Data-backed needs bullets + placeholder action table for owner/timeline (filled in before meeting) |
+| 1 | Title | "AI Core Platform" / "Strategy Review" / date / presenter |
+| 2 | Agenda | 3-item agenda matching section structure, ~10 min format note |
+| 3 | [Section: Portfolio Map] | Dark gray full-bleed divider |
+| 4 | Owned Roadmap Features | 3-column layout: Forge / Compass / Heimdall with status dots and release pills |
+| 5 | Platform Support Engagements | Headline stat + sub-team summary table + nearest-term callouts (see detail below) |
 
-### Slide 2: Executive Summary Detail
+**Section 2: Traction** — What's shipped, what's working, and where we're investing
 
-Each bullet is a **full sentence**, not a data dump. Bold label followed by narrative. Use this structure:
+| Slide | Title | Content |
+|-------|-------|---------|
+| 6 | [Section: Traction] | Dark gray full-bleed divider |
+| 7 | Platform Upgrade Investment | RHAISTRAT-1519 narrative + supporting RHOAIENG issues table |
+| 8 | What We've Shipped | Resolved RHAISTRAT count + themes with keys |
 
+**Section 3: Strategic Opportunities** — Three bets backed by customer data
+
+| Slide | Title | Content |
+|-------|-------|---------|
+| 9 | [Section: Strategic Opportunities] | Dark gray full-bleed divider |
+| 10 | Bet 1: Multi-Tenancy | Two-column bet slide (see detail below) |
+| 11 | Bet 2: GPUaaS / DRA | Two-column bet slide |
+| 12 | Bet 3: Automated Upgrade Validation | Two-column bet slide |
+| 13 | What We Need | 4 data-backed asks tied to evidence from earlier slides |
+| 14 | Thank You | Open discussion close |
+
+### Section Divider Slides
+
+Full-bleed dark gray (#333333) background with a red (#CC0000) left accent bar (0.15" wide), large white title centered vertically, optional gray subtitle.
+
+```python
+def section_slide(title, subtitle=None):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    bg = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), prs.slide_width, prs.slide_height)
+    bg.fill.solid(); bg.fill.fore_color.rgb = DKGRAY; bg.line.fill.background()
+    accent = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(0.15), prs.slide_height)
+    accent.fill.solid(); accent.fill.fore_color.rgb = RED; accent.line.fill.background()
+    # 40pt white bold title at y=2.8, 18pt gray subtitle at y=4.0
 ```
-Portfolio  — "{N} owned roadmap features and {M} cross-team support engagements, backed by {P} open engineering issues across Forge ({f}), Compass ({c}), and Heimdall ({h}) in-flight today."
 
-Delivered ({N}d)  — "{X} issues closed — {A} strategic epics, {B} bugs and CVEs, {C} feature stories. Highest volume: {top 3 themes with counts}."
+### Slide 4: Owned Roadmap Features (3-Column)
 
-In Flight  — "{Y} issues actively in progress — {A} strategic initiatives, {B} features, {C} bugs."
+Three columns: Forge, Compass, Heimdall. Each column has a red header box with team name and count. Items listed with:
+- Status dot: green = In Progress, orange = New/Backlog, blue = Review/Release Pending
+- Feature title truncated to 52 chars
+- Release version pill right-aligned (e.g. "3.5")
 
-Blockers  — "{N} blocker-priority and {M} critical issues remain open. Top blockers: {clean name 1}; {clean name 2}."
+Source: spreadsheet `Ownership = AICP`, grouped by `sub_team` column (J).
 
-Customer Signal  — "Platform impact is primarily indirect — {N} of {M} open RHAISTRAT field requests map directly to AICP platform capabilities."
+### Slide 5: Platform Support Engagements
 
-Gaps  — "{N} owned roadmap features have no active engineering work, including DRA and multi-tenancy — both critical for {release} delivery." (only if stalled_features > 0)
+**Do not list all support items.** The slide has three parts:
+
+1. **Headline stat**: `"{N} support engagements  ·  {M} owned features"` at 18pt bold, followed by italic framing: "Nearly half the AICP portfolio is cross-team support — a capacity and strategic focus tradeoff worth aligning on."
+
+2. **Sub-team summary table** (4 rows max): Sub-Team / # / Releases / Representative Example. Group support items by sub_team, show count, list target releases, pick one representative title.
+
+3. **Nearest-term callouts**: 3 bullet items for the support items with the closest release target. Format: `{KEY}  {title}  ·  {sub_team}  ·  {release}`
+
+### Bet Slides (Slides 10-12)
+
+Two-column layout with a horizontal divider below the title:
+
+- **Left column**: "The market signal" (red bold label) — named customers, deal counts, geographic segments, competitive risk. Sourced entirely from RHAISTRAT ADF description text.
+- **Right column**: "Why this is ours to win" (red bold label) — what AICP owns, why it's a platform-layer problem, current state and gap.
+- Vertical gray divider between columns at x=6.55"
+
+```python
+def bet_slide(title, signal_text, win_text, subtitle=None):
+    slide = blank_slide(title, subtitle)
+    # horizontal divider at y=1.25
+    # left: "The market signal" label at (0.6, 1.35), text at (0.6, 1.75)
+    # vertical divider at (6.55, 1.35)
+    # right: "Why this is ours to win" label at (6.7, 1.35), text at (6.7, 1.75)
 ```
 
-**Blocker name cleaning**: Strip `[tag]` prefixes, "- N week notice!" suffixes, replace " — " with ": ". Truncate to 60 chars.
+Bet content is derived from real RHAISTRAT descriptions using `extract_text()` on ADF JSON. Never invent customers, deal counts, or customer names.
 
-### Slide 7: Strategic Opportunities — RHAISTRAT Description Mining
+Current bets (update from live data each run):
+- **Bet 1**: Multi-Tenancy (RHAISTRAT-1471) — 20+ Nordic CCSPs, BBVA/Telenor/Aramco/SWIFT
+- **Bet 2**: GPUaaS / DRA (RHAISTRAT-1470) — 5+ EMEA opportunities on OCP 4.21
+- **Bet 3**: Automated Upgrade Validation (RHAISTRAT-1519) — release quality gate
 
-The "Why It Matters" column is derived from the **actual RHAISTRAT issue descriptions**, not invented. For each owned roadmap feature, fetch the full description via REST API and extract:
-- **Affected Customers** section — named accounts, segments, deal counts
-- **Problem Statement** — what breaks without AICP investment
-- **Business Alignment** — named deals, POCs, urgency signals
+### RHAISTRAT Description Mining
+
+Fetch description for each key RHAISTRAT item using REST API (`fields=summary,status,priority,description`). Parse the ADF JSON with:
 
 ```python
 def extract_text(node):
-    """Recursively extract plain text from Jira ADF description node."""
     if not node: return ''
-    if isinstance(node, str): return node
-    t = node.get('type', '')
-    content = node.get('content', [])
+    t = node.get('type', ''); content = node.get('content', [])
     if t == 'text': return node.get('text', '')
     if t in ('paragraph', 'heading'): return ' '.join(extract_text(c) for c in content).strip() + '\n'
     if t in ('bulletList', 'orderedList'): return ''.join(extract_text(c) for c in content)
     if t == 'listItem': return '• ' + ' '.join(extract_text(c) for c in content).strip() + '\n'
     if t == 'hardBreak': return '\n'
     return ''.join(extract_text(c) for c in content)
-
-def get_strat_description(key):
-    url = f"{BASE_URL}/rest/api/3/issue/{key}?fields=summary,status,priority,description"
-    req = urllib.request.Request(url, headers={"Authorization": f"Basic {AUTH}", "Content-Type": "application/json"})
-    with urllib.request.urlopen(req) as r:
-        data = json.loads(r.read())
-    return extract_text(data["fields"].get("description") or {})
 ```
 
-Fetch descriptions for each owned roadmap feature's RHAISTRAT key. Parse the text to pull the most useful 1–2 sentences for the "Why It Matters" column. Look for: named customers, deal counts, geographic segments, competitive risk, and what is blocked without the capability.
+Look for in the extracted text: named customers, deal counts, geographic segments, competitive risks, and what is blocked without the capability. Use this verbatim (cleaned) as bet slide content — do not paraphrase or invent.
 
-**Example framing (derived from real description text):**
+### Slide 13: What We Need
 
-| Opportunity | Current State | Why It Matters |
-|-------------|---------------|----------------|
-| GPUaaS / DRA | RHAISTRAT-1470 \| In Progress \| 0 active / 2 backlog | 5+ EMEA opportunities on OCP 4.21 blocked by whole-GPU-only allocation. RHOAI components (KServe, notebooks, KubeRay) must emit DRA ResourceClaims to unlock GPU fractions, sharing, and multi-device topology. AICP owns this — engineering investment is critical path. |
-| Multi-tenancy | RHAISTRAT-1471 \| Critical \| 0 active engineering | 20+ Nordic CCSPs (Atea, Advania, Volvo, AI Sweden) cannot commercialize RHOAI AI Factory without tenant isolation. BBVA, Telenor, Aramco, SWIFT need chargeback and namespace governance. Competitive gap vs VMware. No engineering work started. |
-| Kueue / Batch | RHAISTRAT-1477 \| 4 active / 13 backlog | Truist (active Spark PoC) and BNY named Kueue/Spark as a blocker for at-scale adoption. GPU contention and underutilization block financial services customers without it. |
-| xKS / Multi-Cloud | RHAISTRAT-1209 \| 0 active / 12 backlog | 2 customers (AKS, Coreweave) waiting on GA of llm-d distributed inference on non-OCP Kubernetes. Auth/gateway for xKS unresolved — blocking 3.5 GA. |
+Four data-backed asks, each tied to evidence from earlier slides:
+1. Multi-Tenancy resourcing (RHAISTRAT-1471 Critical, 0 active engineering)
+2. DRA / GPUaaS engineering alignment (RHAISTRAT-1470 In Progress, only backlog issues)
+3. Upgrade CI infrastructure (RHAISTRAT-1519 + supporting RHOAIENG count)
+4. Blocker escalation (blocker count + critical count + top named blockers)
 
-### Slide 8: What We Need & Next Steps
-
-Needs bullets come **only from data**:
-- Blocker count (if > 0)
-- Stalled owned features count (if > 0)
-- Unassigned in-flight count (if > 0)
-
-Next Steps table uses **placeholder rows** — the manager fills in owner and timeline before the meeting. Do not invent owners or timelines.
+Needs come **only from data** — never invented. Blocker names cleaned: strip `[tag]` prefixes, "- N week notice!" suffixes, truncate to 60 chars.
 
 ### Helper Functions
 
 ```python
-RED = RGBColor(0xCC, 0x00, 0x00)
-DARK_GRAY = RGBColor(0x33, 0x33, 0x33)
-MED_GRAY = RGBColor(0x66, 0x66, 0x66)
+RED   = RGBColor(0xCC, 0x00, 0x00)
+DKGRAY= RGBColor(0x33, 0x33, 0x33)
+MDGRAY= RGBColor(0x66, 0x66, 0x66)
 WHITE = RGBColor(0xFF, 0xFF, 0xFF)
-LIGHT_GRAY_BG = RGBColor(0xF2, 0xF2, 0xF2)
+LTGRAY= RGBColor(0xF2, 0xF2, 0xF2)
 
-def add_slide(prs, title_text=None):
-    """Blank slide with red top bar and optional title."""
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), prs.slide_width, Inches(0.08))
-    shape.fill.solid(); shape.fill.fore_color.rgb = RED; shape.line.fill.background()
-    if title_text:
-        txBox = slide.shapes.add_textbox(Inches(0.6), Inches(0.3), Inches(12), Inches(0.7))
-        tf = txBox.text_frame; tf.word_wrap = True
-        p = tf.paragraphs[0]
-        run = p.add_run(); run.text = title_text
-        run.font.size = Pt(28); run.font.bold = True; run.font.color.rgb = DARK_GRAY; run.font.name = "Calibri"
-    return slide
+def blank_slide(title_text=None, subtitle=None):
+    """Blank slide with red top bar, optional title (26pt bold) and subtitle (12pt italic gray)."""
 
-def add_kpi_boxes(slide, kpis, top=1.3):
-    """KPI number boxes. kpis = [(number, label), ...]"""
-    n = len(kpis); box_width = 2.5; gap = 0.3
-    total_width = n * box_width + (n-1) * gap
-    start_x = (13.333 - total_width) / 2
-    for i, (number, label) in enumerate(kpis):
-        x = start_x + i * (box_width + gap)
-        shape = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(top), Inches(box_width), Inches(1.5))
-        shape.fill.solid(); shape.fill.fore_color.rgb = LIGHT_GRAY_BG
-        shape.line.color.rgb = RGBColor(0xDD, 0xDD, 0xDD); shape.line.width = Pt(1)
-        txBox = slide.shapes.add_textbox(Inches(x), Inches(top + 0.15), Inches(box_width), Inches(0.8))
-        p = txBox.text_frame.paragraphs[0]; p.alignment = PP_ALIGN.CENTER
-        run = p.add_run(); run.text = str(number)
-        run.font.size = Pt(36); run.font.bold = True; run.font.color.rgb = RED; run.font.name = "Calibri"
-        txBox2 = slide.shapes.add_textbox(Inches(x), Inches(top + 0.85), Inches(box_width), Inches(0.6))
-        p2 = txBox2.text_frame.paragraphs[0]; p2.alignment = PP_ALIGN.CENTER
-        run2 = p2.add_run(); run2.text = label
-        run2.font.size = Pt(13); run2.font.color.rgb = MED_GRAY; run2.font.name = "Calibri"
+def add_text_box(slide, text, left, top, width, height, size=13, bold=False, color=None, italic=False, wrap=True):
+    """Single-run text box."""
 
-def add_bullet_list(slide, items, left=0.6, top=1.2, width=12, height=5.5, size=16):
-    """Bullet list with optional bold prefix. items = [(bold_part, rest_text), ...]"""
-    txBox = slide.shapes.add_textbox(Inches(left), Inches(top), Inches(width), Inches(height))
-    tf = txBox.text_frame; tf.word_wrap = True
-    for i, (bold_part, rest) in enumerate(items):
-        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-        p.space_after = Pt(6)
-        if bold_part:
-            run = p.add_run(); run.text = bold_part
-            run.font.size = Pt(size); run.font.bold = True; run.font.color.rgb = DARK_GRAY; run.font.name = "Calibri"
-        run = p.add_run(); run.text = rest
-        run.font.size = Pt(size); run.font.color.rgb = DARK_GRAY; run.font.name = "Calibri"
+def add_bullet_box(slide, items, left, top, width, height, size=13, space_after=5):
+    """Multi-paragraph text box. items = [(bold_prefix, rest), ...]"""
 
-def add_table(slide, headers, rows, left=0.6, top=2.0, width=12, row_height=0.35):
-    """Table with red headers and alternating row shading."""
-    tbl_shape = slide.shapes.add_table(len(rows)+1, len(headers), Inches(left), Inches(top), Inches(width), Inches(row_height*(len(rows)+1)))
-    table = tbl_shape.table
-    for ci, h in enumerate(headers):
-        cell = table.cell(0, ci); cell.text = h
-        cell.fill.solid(); cell.fill.fore_color.rgb = RED
-        for p in cell.text_frame.paragraphs:
-            for r in p.runs: r.font.color.rgb = WHITE; r.font.bold = True; r.font.size = Pt(12); r.font.name = "Calibri"
-        cell.vertical_anchor = MSO_ANCHOR.MIDDLE
-    for ri, row_data in enumerate(rows):
-        for ci, val in enumerate(row_data):
-            cell = table.cell(ri+1, ci); cell.text = str(val)
-            if ri % 2 == 1: cell.fill.solid(); cell.fill.fore_color.rgb = LIGHT_GRAY_BG
-            for p in cell.text_frame.paragraphs:
-                for r in p.runs: r.font.size = Pt(11); r.font.color.rgb = DARK_GRAY; r.font.name = "Calibri"
-            cell.vertical_anchor = MSO_ANCHOR.MIDDLE
-```
+def add_table(slide, headers, rows, left, top, width, row_h=0.38, font_size=11):
+    """Table with red headers, white header text, alternating light gray rows."""
 
-### Slide 5 Detail: Three-Column Team Layout
-
-For the "What's In Flight" slide, use a 3-column layout instead of a table:
-
-```python
-col_width = 3.8; gap = 0.3; start_x = 0.6
-for idx, (team, focus) in enumerate([("Forge", "xKS, GitOps & CI/CD"), ("Compass", "QE & Observability"), ("Heimdall", "Security & Gateway")]):
-    x = start_x + idx * (col_width + gap)
-    # Red header box with team name and count
-    shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(x), Inches(1.2), Inches(col_width), Inches(0.5))
-    shape.fill.solid(); shape.fill.fore_color.rgb = RED; shape.line.fill.background()
-    # ... add team name in white, focus area in italic gray below, then top 4 items as bullet text
+def label_pill(slide, text, left, top, color=RED, text_color=WHITE, width=1.1, height=0.28, size=10):
+    """Rounded rectangle label (GA/TP/DP maturity badges)."""
 ```
 
 Prioritize items: strategic initiatives first, then blocker/critical priority, then remaining. Show item summary (truncated to 55 chars) with priority tag.
