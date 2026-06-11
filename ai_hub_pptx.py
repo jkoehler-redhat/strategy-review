@@ -92,7 +92,7 @@ THEME_MAP = {
     "MLflow / Asset Registry":["mlflow", "unity catalog", "asset registry", "tiger team", "ai asset"],
     "Bodies of Water":        ["bodies of water", "lake", "ocean", "stream", "modular upgrade"],
     "Security & CVEs":        ["cve", "vulnerability", "schemathesis", "ssrf", "hermetic", "fuzz", "signing", "cosign", "securesign"],
-    "Async Upload / OCI":     ["async upload", "async-upload", "omlmd", "oci", "image sign", "omlmd"],
+    "Async Upload / OCI":     ["async upload", "async-upload", "omlmd", "oci", "image sign"],
     "Upstream / Community":   ["kubeflow", "upstream", "mlmd", "graduation", "community", "blog"],
 }
 def get_theme(summary):
@@ -434,7 +434,7 @@ add_text_box(slide, "Open discussion", 0.6, 3.5, 12, 0.7, size=28, color=RED)
 add_text_box(slide, "What questions do you have?  Where should we go deeper?", 0.6, 4.3, 12, 0.5, size=16, color=MDGRAY, italic=True)
 
 # ── SAVE ──────────────────────────────────────────────────────────────────────
-out_dir = "/Users/jaykoehler/aicp-status/docs/strategy"
+out_dir = "/private/tmp/strategy-review-repo/docs/strategy"
 os.makedirs(out_dir, exist_ok=True)
 date_str = datetime.now().strftime("%Y-%m-%d")
 path1 = f"{out_dir}/{date_str}_ai_hub_strategy_review.pptx"

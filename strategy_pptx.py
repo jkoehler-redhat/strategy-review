@@ -527,7 +527,9 @@ bet_slide(
         "• HPC / Supercomputing — Spain AI Gigafactory, EU AI Continent Action Plan: fair-share GPU "
         "scheduling required by grant funding agencies.\n"
         "• Enterprise — BBVA Garanti, Telenor, Aramco, Nextera, SWIFT: serving 10–50+ internal teams "
-        "with independent governance, isolation, and chargeback."
+        "with independent governance, isolation, and chargeback.\n\n"
+        + (desc_1471 if desc_1471 else
+           "RHAISTRAT-1471 description unavailable — verify Jira access.")
     ),
     win_text=(
         "AICP owns this feature. Multi-tenancy is a layered platform discipline — touching namespaces, "
@@ -551,10 +553,9 @@ bet_slide(
         "attributes, sharing, and multi-device topology.\n\n"
         "Today, RHOAI components (KServe, training-operator, notebooks, KubeRay) use the legacy "
         "nvidia.com/gpu extended resource model, which only supports whole-GPU allocation.\n\n"
-        "Affected customers:\n"
-        "• 5+ active opportunities in EMEA running OCP 4.21 with centralized AI factory infrastructure\n"
-        "• GPUaaS UX vision actively in progress — product expects platform support to land in 3.5\n"
-        "• Competitive analysis underway (RHOAIENG-65304)"
+        + (desc_1470 if desc_1470 else
+           "Affected customers: 5+ active EMEA opportunities on OCP 4.21. GPUaaS UX vision in progress — "
+           "product expects platform support in 3.5. Competitive analysis underway (RHOAIENG-65304).")
     ),
     win_text=(
         "AICP owns the DRA integration work. RHOAI components must be updated to emit DRA ResourceClaims "
@@ -577,9 +578,10 @@ bet_slide(
         "This is a recurring source of customer-facing issues at GA — components that pass their own "
         "tests fail during operator upgrades because cross-component upgrade scenarios are not validated "
         "in CI until a release candidate is produced.\n\n"
-        f"Supporting engineering work: {len(upgrade_issues)} open RHOAIENG upgrade issues across "
-        "Kueue upgrade testing, Gateway API upgrade behavior, xKS upgrade paths, OLM bundle builds, "
-        "and disconnected cluster upgrade cases."
+        + (desc_1519 if desc_1519 else
+           f"Supporting engineering work: {len(upgrade_issues)} open RHOAIENG upgrade issues across "
+           "Kueue upgrade testing, Gateway API upgrade behavior, xKS upgrade paths, OLM bundle builds, "
+           "and disconnected cluster upgrade cases.")
     ),
     win_text=(
         "Every produced release artifact — nightly, early access, or GA — will execute the full supported "
@@ -622,7 +624,7 @@ add_text_box(slide, "Open discussion", 0.6, 3.5, 12, 0.7, size=28, color=RED)
 add_text_box(slide, "What questions do you have?  Where should we go deeper?", 0.6, 4.3, 12, 0.5, size=16, color=MDGRAY, italic=True)
 
 # ── SAVE ──────────────────────────────────────────────────────────────────────
-out_dir = "/Users/jaykoehler/aicp-status/docs/strategy"
+out_dir = "/private/tmp/strategy-review-repo/docs/strategy"
 os.makedirs(out_dir, exist_ok=True)
 date_str = datetime.now().strftime("%Y-%m-%d")
 path1 = f"{out_dir}/{date_str}_strategy_review.pptx"

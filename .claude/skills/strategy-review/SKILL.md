@@ -473,6 +473,8 @@ from pptx.enum.shapes import MSO_SHAPE
 
 If import fails, install: `pip3 install --break-system-packages python-pptx`
 
+**Lookback period**: Both PowerPoint scripts hardcode `LOOKBACK = 180` days. To change, edit the constant at the top of the script. The interactive prompt (Prompt 1) applies to Word/markdown output only.
+
 ### Slide Layout
 
 Widescreen 16:9 (13.333 x 7.5 inches). Content slides use blank layout with a thin red (#CC0000) bar at the top (0.07" tall). Section divider slides are full-bleed dark gray with a red left accent bar.
@@ -484,6 +486,34 @@ Widescreen 16:9 (13.333 x 7.5 inches). Content slides use blank layout with a th
 | Medium Gray | #666666 | Subtitles, labels, breadcrumb text |
 | White | #FFFFFF | Text on red/dark backgrounds |
 | Light Gray | #F2F2F2 | Alternating table rows |
+
+### PowerPoint Queries (AICP — `strategy_pptx.py`)
+
+The PowerPoint scripts run a different query set than the 7 documented above (which are for Word/markdown output). The AICP script runs:
+
+| Query | JQL / Source |
+|-------|-------------|
+| In-flight | `component in ("AI Core Platform","AI Core Platform Security") AND status in ("In Progress","In Development","In Review","Code Review","In Testing","QE Review")` |
+| Blockers | `component in (...) AND priority in (Blocker, Critical) AND status NOT IN (Closed,...)` |
+| Upgrade issues | `component in (...) AND summary ~ "upgrade" AND status NOT IN (Closed,...)` |
+| Security/TLS | `component in (...) AND (summary ~ "TLS" OR "FIPS" OR "ML-KEM" OR "red-team" OR "security scan")` |
+| Resolved STRATs | `project = RHAISTRAT AND labels in ("aicp-team-forge","aicp-team-compass","aicp-team-heimdall") AND resolved >= -180d` |
+| Onboarding | `component in (...) AND (summary ~ "operator integration" OR "Batch Gateway" OR "Agents Operator")` |
+| EA1 sign-off | `component in (...) AND summary ~ "Sign-Off"` |
+| Bet descriptions | Individual `GET /rest/api/3/issue/{key}` for RHAISTRAT-1471, RHAISTRAT-1470, RHAISTRAT-1519 |
+| Spreadsheet | `aicp_feature_priorities.xlsx` parsed for owned/support features |
+
+Unlabeled in-flight issues are derived from the in-flight result set, not a separate query.
+
+### PowerPoint Queries (AI Hub — `ai_hub_pptx.py`)
+
+| Query | JQL / Source |
+|-------|-------------|
+| All open | `component = "AI Hub" AND status NOT IN (Closed, Resolved, Done, Cancelled)` |
+| Resolved | `component = "AI Hub" AND resolved >= -180d` |
+| Bet descriptions | Individual `GET /rest/api/3/issue/{key}` for RHOAIENG-50747, RHOAIENG-63382, RHOAIENG-60367 |
+
+In-flight, blockers, CVEs, and undefined priority are all derived from the all-open result set.
 
 ### 14-Slide Structure
 
@@ -568,12 +598,12 @@ def bet_slide(title, signal_text, win_text, subtitle=None):
     # right: "Why this is ours to win" label at (6.7, 1.35), text at (6.7, 1.75)
 ```
 
-Bet content is derived from real RHAISTRAT descriptions using `extract_text()` on ADF JSON. Never invent customers, deal counts, or customer names.
+Each bet's `signal_text` combines a hardcoded framing paragraph with live RHAISTRAT description text appended via `extract_text()` on ADF JSON. The hardcoded framing provides curated customer context; the live description adds current RHAISTRAT scope and status. Never invent customers, deal counts, or customer names.
 
-Current bets (update from live data each run):
-- **Bet 1**: Multi-Tenancy (RHAISTRAT-1471) — 20+ Nordic CCSPs, BBVA/Telenor/Aramco/SWIFT
-- **Bet 2**: GPUaaS / DRA (RHAISTRAT-1470) — 5+ EMEA opportunities on OCP 4.21
-- **Bet 3**: Automated Upgrade Validation (RHAISTRAT-1519) — release quality gate
+Current bets:
+- **Bet 1**: Multi-Tenancy (RHAISTRAT-1471) — framing: 20+ Nordic CCSPs, BBVA/Telenor/Aramco/SWIFT + live `desc_1471`
+- **Bet 2**: GPUaaS / DRA (RHAISTRAT-1470) — framing: DRA device-level granularity + live `desc_1470`
+- **Bet 3**: Automated Upgrade Validation (RHAISTRAT-1519) — framing: upgrade quality gate + live `desc_1519`
 
 ### RHAISTRAT Description Mining
 
@@ -613,7 +643,7 @@ Five data-backed asks, each tied to evidence from earlier slides:
 4. Blocker escalation (blocker count + critical count + top named blockers)
 5. Sub-team triage — in-flight issues without any `aicp-team-*` label need ownership assignment
 
-Needs come **only from data** — never invented. Blocker names cleaned: strip `[tag]` prefixes, "- N week notice!" suffixes, truncate to 60 chars.
+Needs come **only from data** — never invented.
 
 ### Helper Functions
 
@@ -644,8 +674,11 @@ Prioritize items: strategic initiatives first, then blocker/critical priority, t
 
 ## Output Locations
 
+All output goes to the `jkoehler-redhat/strategy-review` repo (local: `/private/tmp/strategy-review-repo/`). **Never write to aicp-status.**
+
+- AICP PowerPoint: `docs/strategy/{YYYY-MM-DD}_strategy_review.pptx` + `~/aicp-strategy-review.pptx`
+- AI Hub PowerPoint: `docs/strategy/{YYYY-MM-DD}_ai_hub_strategy_review.pptx` + `~/ai-hub-strategy-review.pptx`
 - Word: `docs/strategy/{YYYY-MM-DD}_strategy_review.docx`
-- PowerPoint: `docs/strategy/{YYYY-MM-DD}_strategy_review.pptx`
 - Markdown: `docs/strategy/{YYYY-MM-DD}_strategy_review.md`
 - Google Doc: `https://docs.google.com/document/d/1kU_huAxuzmx3wMm34n2FsleMLWs_0TC5/edit`
 
