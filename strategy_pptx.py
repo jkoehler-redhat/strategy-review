@@ -302,7 +302,16 @@ unlabeled = [i for i in inflight if get_team(i["fields"].get("labels",[])) == "U
 
 print(f"  In-flight: {len(inflight)} | Blockers: {len(blockers)} | Upgrade: {len(upgrade_issues)} | Security: {len(security_issues)} | Unlabeled: {len(unlabeled)} | Resolved STRATs: {len(resolved_strats)}")
 
-# Fetch strategic bet descriptions
+# DRA / GPUaaS issues for Bet 2 subtitle
+dra_issues = jira_search(
+    'project = RHOAIENG AND component in ("AI Core Platform","AI Core Platform Security") '
+    'AND (summary ~ "DRA" OR summary ~ "GPUaaS" OR summary ~ "Dynamic Resource Allocation") '
+    'AND status NOT IN (Closed, Resolved, Done, Cancelled)',
+    fields="key,summary,status,priority,labels")
+dra_inflight = [i for i in dra_issues if i["fields"]["status"]["name"] in
+                ("In Progress","In Development","In Review","Code Review","In Testing","QE Review")]
+
+# Fetch strategic bet descriptions and statuses
 print("Fetching STRAT descriptions for bets...")
 def get_desc_snippet(key, max_chars=900):
     try:
@@ -310,9 +319,18 @@ def get_desc_snippet(key, max_chars=900):
         return extract_text(f.get('description') or {})[:max_chars]
     except: return ""
 
-desc_1471 = get_desc_snippet("RHAISTRAT-1471", 900)  # Multi-tenancy
-desc_1470 = get_desc_snippet("RHAISTRAT-1470", 900)  # DRA
-desc_1519 = get_desc_snippet("RHAISTRAT-1519", 900)  # Upgrade Validation
+def get_strat_status(key):
+    try:
+        f = jira_get(key, fields="summary,status,priority")
+        return f["status"]["name"], f["priority"]["name"]
+    except: return "Unknown", "Unknown"
+
+desc_1471 = get_desc_snippet("RHAISTRAT-1471", 900)
+desc_1470 = get_desc_snippet("RHAISTRAT-1470", 900)
+desc_1519 = get_desc_snippet("RHAISTRAT-1519", 900)
+stat_1471, pri_1471 = get_strat_status("RHAISTRAT-1471")
+stat_1470, pri_1470 = get_strat_status("RHAISTRAT-1470")
+stat_1519, pri_1519 = get_strat_status("RHAISTRAT-1519")
 
 print("Data collection complete.")
 
@@ -517,7 +535,7 @@ section_slide("Strategic Opportunities", "Three bets backed by customer data —
 # ── SLIDE 10: BET 1 — MULTI-TENANCY ──────────────────────────────────────────
 bet_slide(
     "Bet 1: Multi-Tenancy in RHOAI",
-    subtitle="RHAISTRAT-1471  ·  Critical  ·  Forge  ·  3.5  ·  In Progress — 0 active engineering issues",
+    subtitle=f"RHAISTRAT-1471  ·  {pri_1471}  ·  Forge  ·  3.5  ·  {stat_1471}",
     signal_text=(
         "RHOAI lacks consistent isolation, resource governance, and tenant lifecycle management — forcing "
         "operators to over-provision per tenant or evaluate competing platforms.\n\n"
@@ -546,7 +564,7 @@ bet_slide(
 # ── SLIDE 11: BET 2 — GPUaaS / DRA ───────────────────────────────────────────
 bet_slide(
     "Bet 2: GPUaaS / Dynamic Resource Allocation (DRA)",
-    subtitle="RHAISTRAT-1470  ·  Major  ·  Forge  ·  3.5  ·  In Progress — 2 backlog AICP issues",
+    subtitle=f"RHAISTRAT-1470  ·  {pri_1470}  ·  Forge  ·  3.5  ·  {stat_1470} — {len(dra_issues)} AICP issues ({len(dra_inflight)} in progress)",
     signal_text=(
         "Customers with on-premises NVIDIA GPU investments on OpenShift 4.21 need RHOAI components to "
         "support DRA so GPU resources can be requested with device-level granularity — fractions, specific "
@@ -571,7 +589,7 @@ bet_slide(
 # ── SLIDE 12: BET 3 — AUTOMATED UPGRADE VALIDATION ───────────────────────────
 bet_slide(
     "Bet 3: Automated Upgrade Validation as a Release Gate",
-    subtitle="RHAISTRAT-1519  ·  Heimdall  ·  3.5  ·  In Progress — 9 supporting RHOAIENG issues",
+    subtitle=f"RHAISTRAT-1519  ·  {pri_1519}  ·  Heimdall  ·  3.5  ·  {stat_1519} — {len(upgrade_issues)} supporting RHOAIENG issues",
     signal_text=(
         "RHOAI currently lacks a continuous upgrade quality gate in CI. Upgrade regressions are found "
         "late because the migration process still depends on manual steps and limited end-to-end validation.\n\n"
@@ -597,20 +615,24 @@ bet_slide(
 # ── SLIDE 13: WHAT WE NEED ────────────────────────────────────────────────────
 slide = blank_slide("What We Need", "Portfolio map  ·  Traction  ·  Strategic opportunities")
 
+top_blockers = blocker_p[:3]
+top_blocker_str = ", ".join(
+    f"{i['key']} ({i['fields']['summary'][:45]})" for i in top_blockers
+) if top_blockers else "none currently at Blocker priority"
+
 needs = [
     ("1.  Multi-Tenancy resourcing  ",
-     "RHAISTRAT-1471 is Critical for 3.5 with zero active engineering. Need team capacity "
-     "assigned to Forge to begin scope definition and delivery this sprint."),
+     f"RHAISTRAT-1471 is {pri_1471} for 3.5, status: {stat_1471}. Need team capacity "
+     "assigned to Forge to begin scope definition and delivery."),
     ("2.  DRA / GPUaaS engineering alignment  ",
-     "RHAISTRAT-1470 is In Progress strategically but only 2 backlog issues exist in AICP. "
-     "Need engineering investment aligned to product priority — GPUaaS UX vision is already moving."),
+     f"RHAISTRAT-1470 is {stat_1470} strategically but only {len(dra_issues)} AICP issues exist "
+     f"({len(dra_inflight)} in progress). Need engineering investment aligned to product priority."),
     ("3.  Upgrade CI infrastructure  ",
-     f"RHAISTRAT-1519 (Heimdall) requires cluster provisioning infrastructure to run the upgrade "
-     f"matrix in CI. {len(upgrade_issues)} supporting issues in flight — need platform/infra support."),
+     f"RHAISTRAT-1519 ({pri_1519}, Heimdall) requires cluster provisioning infrastructure to run the upgrade "
+     f"matrix in CI. {len(upgrade_issues)} supporting issues open — need platform/infra support."),
     ("4.  Blocker escalation  ",
      f"{len(blocker_p)} blocker-priority and {len(blocker_c)} critical issues remain open across AICP. "
-     "Top: xKS operator CrashLoopBackOff (RHOAIENG-67048), LLM-D Batch Gateway integration "
-     "(RHOAIENG-63970/63964), FIPS compliance (RHOAIENG-63211)."),
+     f"Top: {top_blocker_str}."),
     ("5.  Sub-team triage  ",
      f"{len(unlabeled)} in-flight issues — including {len([i for i in security_issues if get_team(i['fields'].get('labels',[])) == 'Unassigned'])} of the TLS compliance epics — have no sub-team label. "
      "Need manager review to assign to Forge, Compass, or Heimdall so they appear in reporting and sprint planning."),

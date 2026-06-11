@@ -229,11 +229,22 @@ for i in resolved:
 
 print(f"  Open: {len(all_open)} | In-flight: {len(inflight)} | Blockers: {len(blocker_p)} | CVEs: {len(cves)} | Resolved ({LOOKBACK}d): {len(resolved)}")
 
-# Strategic bet descriptions
+# Strategic bet descriptions and statuses
 print("Fetching strategic issue descriptions...")
 desc_mlflow  = get_desc_snippet("RHOAIENG-50747", 900)  # MLflow tiger team
 desc_mcp     = get_desc_snippet("RHOAIENG-63382", 900)  # MCP Registry
 desc_catalog = get_desc_snippet("RHOAIENG-60367", 900)  # Decouple catalog
+
+def get_issue_status(key):
+    try:
+        f = jira_get(key, fields="summary,status,priority")
+        return f["status"]["name"], f["priority"]["name"]
+    except: return "Unknown", "Unknown"
+
+stat_50747, pri_50747 = get_issue_status("RHOAIENG-50747")
+stat_63382, pri_63382 = get_issue_status("RHOAIENG-63382")
+stat_63350, pri_63350 = get_issue_status("RHOAIENG-63350")
+stat_60367, pri_60367 = get_issue_status("RHOAIENG-60367")
 
 print("Data collection complete.")
 
@@ -334,16 +345,16 @@ section_slide("Strategic Opportunities", "Three bets backed by data — and what
 # ── SLIDE 9: BET 1 — MLFLOW / AI ASSET REGISTRY ─────────────────────────────
 bet_slide(
     "Bet 1: MLflow as the Unified AI Asset Registry",
-    subtitle="RHOAIENG-50747  ·  Tiger Team  ·  In Progress",
+    subtitle=f"RHOAIENG-50747  ·  {pri_50747}  ·  Tiger Team  ·  {stat_50747}",
     signal_text=(
         "Kubeflow Model Registry is a narrowly scoped model metadata store. Customers need a unified "
         "registry that covers models, experiments, datasets, and artifacts — with lineage, governance, "
         "and multi-tenancy built in.\n\n"
-        "MLflow / Unity Catalog OSS has emerged as the leading open-source candidate for this role. "
+        "MLflow has emerged as the leading open-source candidate for this role. "
         "Multiple enterprise customers are already running MLflow and expect RHOAI to integrate with it "
         "rather than requiring migration to a proprietary registry.\n\n"
         + (desc_mlflow if desc_mlflow else
-           "Tiger team is actively investigating Unity Catalog as the governance backbone for a unified AI asset registry.")
+           "Tiger team is actively investigating MLflow as the backbone for a unified AI asset registry.")
     ),
     win_text=(
         "AI Hub owns Model Registry — and owns the migration path. Moving to MLflow as the backend "
@@ -360,7 +371,7 @@ bet_slide(
 # ── SLIDE 10: BET 2 — MCP REGISTRY ───────────────────────────────────────────
 bet_slide(
     "Bet 2: MCP Registry — Model Context Protocol as a Platform Capability",
-    subtitle="RHOAIENG-63382 / RHOAIENG-63350  ·  Tech Preview  ·  In Progress",
+    subtitle=f"RHOAIENG-63382 ({stat_63382}) / RHOAIENG-63350 ({stat_63350})  ·  Tech Preview",
     signal_text=(
         "Model Context Protocol (MCP) is rapidly becoming the standard for how AI agents discover and "
         "invoke tools, APIs, and data sources. Customers building agentic AI workflows on RHOAI expect "
@@ -385,7 +396,7 @@ bet_slide(
 # ── SLIDE 11: BET 3 — MODEL CATALOG DECOUPLING ───────────────────────────────
 bet_slide(
     "Bet 3: Decouple Model Catalog into an Independent Operator",
-    subtitle="RHOAIENG-60367  ·  Major  ·  New — stories scoped, not yet started",
+    subtitle=f"RHOAIENG-60367  ·  {pri_60367}  ·  {stat_60367}",
     signal_text=(
         "Model Catalog is currently embedded inside the model-registry-operator, creating tight coupling "
         "that limits independent releases, increases blast radius for catalog changes, and complicates "
