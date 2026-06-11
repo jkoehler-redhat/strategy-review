@@ -66,7 +66,16 @@ def jira_get(key, fields="summary,status,priority,description,labels"):
 def extract_text(node):
     if not node: return ''
     t = node.get('type', ''); content = node.get('content', [])
-    if t == 'text': return node.get('text', '')
+    if t == 'text':
+        text = node.get('text', '')
+        for mark in node.get('marks', []):
+            if mark.get('type') == 'link':
+                href = mark.get('attrs', {}).get('href', '')
+                if href and href not in text:
+                    text = f"{text} ({href})"
+        return text
+    if t == 'inlineCard':
+        return node.get('attrs', {}).get('url', '')
     if t in ('paragraph', 'heading'): return ' '.join(extract_text(c) for c in content).strip() + '\n'
     if t in ('bulletList', 'orderedList'): return ''.join(extract_text(c) for c in content)
     if t == 'listItem': return '• ' + ' '.join(extract_text(c) for c in content).strip() + '\n'
