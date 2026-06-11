@@ -515,7 +515,7 @@ Three sections separated by full-bleed section divider slides:
 | 10 | Bet 1: Multi-Tenancy | Two-column bet slide (see detail below) |
 | 11 | Bet 2: GPUaaS / DRA | Two-column bet slide |
 | 12 | Bet 3: Automated Upgrade Validation | Two-column bet slide |
-| 13 | What We Need | 4 data-backed asks tied to evidence from earlier slides |
+| 13 | What We Need | 5 data-backed asks tied to evidence from earlier slides |
 | 14 | Thank You | Open discussion close |
 
 ### Section Divider Slides
@@ -536,7 +536,7 @@ def section_slide(title, subtitle=None):
 
 Three columns: Forge, Compass, Heimdall. Each column has a red header box with team name and count. Items listed with:
 - Status dot: green = In Progress, orange = New/Backlog, blue = Review/Release Pending
-- Feature title truncated to 52 chars
+- Feature title (full length, word wrap enabled)
 - Release version pill right-aligned (e.g. "3.5")
 
 Source: spreadsheet `Ownership = AICP`, grouped by `sub_team` column (J).
@@ -583,7 +583,16 @@ Fetch description for each key RHAISTRAT item using REST API (`fields=summary,st
 def extract_text(node):
     if not node: return ''
     t = node.get('type', ''); content = node.get('content', [])
-    if t == 'text': return node.get('text', '')
+    if t == 'text':
+        text = node.get('text', '')
+        for mark in node.get('marks', []):
+            if mark.get('type') == 'link':
+                href = mark.get('attrs', {}).get('href', '')
+                if href and href not in text:
+                    text = f"{text} ({href})"
+        return text
+    if t == 'inlineCard':
+        return node.get('attrs', {}).get('url', '')
     if t in ('paragraph', 'heading'): return ' '.join(extract_text(c) for c in content).strip() + '\n'
     if t in ('bulletList', 'orderedList'): return ''.join(extract_text(c) for c in content)
     if t == 'listItem': return '• ' + ' '.join(extract_text(c) for c in content).strip() + '\n'
@@ -591,15 +600,18 @@ def extract_text(node):
     return ''.join(extract_text(c) for c in content)
 ```
 
+**Critical**: Without handling `marks` for link nodes and `inlineCard` type, URLs disappear from descriptions — text like "For design, see the RFC:" renders with nothing after the colon.
+
 Look for in the extracted text: named customers, deal counts, geographic segments, competitive risks, and what is blocked without the capability. Use this verbatim (cleaned) as bet slide content — do not paraphrase or invent.
 
 ### Slide 13: What We Need
 
-Four data-backed asks, each tied to evidence from earlier slides:
+Five data-backed asks, each tied to evidence from earlier slides:
 1. Multi-Tenancy resourcing (RHAISTRAT-1471 Critical, 0 active engineering)
 2. DRA / GPUaaS engineering alignment (RHAISTRAT-1470 In Progress, only backlog issues)
 3. Upgrade CI infrastructure (RHAISTRAT-1519 + supporting RHOAIENG count)
 4. Blocker escalation (blocker count + critical count + top named blockers)
+5. Sub-team triage — in-flight issues without any `aicp-team-*` label need ownership assignment
 
 Needs come **only from data** — never invented. Blocker names cleaned: strip `[tag]` prefixes, "- N week notice!" suffixes, truncate to 60 chars.
 
@@ -628,7 +640,7 @@ def label_pill(slide, text, left, top, color=RED, text_color=WHITE, width=1.1, h
     """Rounded rectangle label (GA/TP/DP maturity badges)."""
 ```
 
-Prioritize items: strategic initiatives first, then blocker/critical priority, then remaining. Show item summary (truncated to 55 chars) with priority tag.
+Prioritize items: strategic initiatives first, then blocker/critical priority, then remaining. Show full item summary with priority tag (no truncation — word wrap handles overflow).
 
 ## Output Locations
 
@@ -667,6 +679,60 @@ rm -f ~/.config/gws/token_cache.json
 After generation, display a summary of findings to the user and ask:
 1. "Would you like to revise anything?"
 2. "Would you like to commit these files?"
+
+## AI Hub Deck (`ai_hub_pptx.py`)
+
+A separate 13-slide PowerPoint for the AI Hub component — same structure as the AICP deck but scoped differently.
+
+**Component scope**: `component = "AI Hub"` in RHOAIENG (not AI Core Platform)
+
+**No sub-team labels**: AI Hub uses theme-based grouping instead of `aicp-team-*` labels.
+
+**No release gate slides**: AI Hub doesn't have an upgrade/release gate narrative.
+
+### Theme Mapping
+
+| Theme | Keywords |
+|-------|---------|
+| Model Catalog | catalog, eagle3, xeon, tool calling, text-embedding, cold-start, vram, benchmark, model batch |
+| MCP Registry | mcp registry, mcp server |
+| MLflow / Asset Registry | mlflow, unity catalog, asset registry, tiger team, ai asset |
+| Bodies of Water | bodies of water, lake, ocean, stream, modular upgrade |
+| Security & CVEs | cve, vulnerability, schemathesis, ssrf, hermetic, fuzz, signing, cosign, securesign |
+| Async Upload / OCI | async upload, async-upload, omlmd, oci, image sign |
+| Upstream / Community | kubeflow, upstream, mlmd, graduation, community, blog |
+
+### 13-Slide Structure
+
+| Slide | Title | Notes |
+|-------|-------|-------|
+| 1 | Title | "AI Hub" / "Strategy Review" |
+| 2 | Agenda | 3 sections |
+| 3 | [Section: Portfolio Map] | Divider |
+| 4 | Portfolio Overview | Theme breakdown table (open, in-flight, resolved per theme) |
+| 5 | In Flight | Themes × top 3 summaries per theme (no truncation) |
+| 6 | [Section: Traction] | Divider |
+| 7 | What We've Shipped | Resolved by theme with issue keys |
+| 8 | [Section: Strategic Opportunities] | Divider |
+| 9 | Bet 1: MLflow / Asset Registry | RHOAIENG-50747 |
+| 10 | Bet 2: MCP Registry | RHOAIENG-63382 / RHOAIENG-63350 |
+| 11 | Bet 3: Decouple Model Catalog | RHOAIENG-60367 |
+| 12 | What We Need | 4 asks: MLflow decision, MCP resourcing, CVE backlog, priority triage |
+| 13 | Thank You | Open discussion |
+
+### What We Need (AI Hub — 4 bullets)
+
+1. MLflow architecture decision (tiger team research complete, RFC in progress)
+2. MCP Registry resourcing to hit Tech Preview in 3.5
+3. CVE backlog prioritization (10 open CVEs)
+4. Priority triage — ~55% of portfolio is Undefined priority
+
+### Output
+
+- `docs/strategy/{YYYY-MM-DD}_ai_hub_strategy_review.pptx`
+- `~/ai-hub-strategy-review.pptx` (convenience copy)
+
+Run: `PYTHONPATH=/opt/homebrew/lib/python3.13/site-packages python3 ai_hub_pptx.py`
 
 ## Quality Checks
 
