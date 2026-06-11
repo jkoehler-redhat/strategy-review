@@ -500,7 +500,8 @@ The PowerPoint scripts run a different query set than the 7 documented above (wh
 | Resolved STRATs | `project = RHAISTRAT AND labels in ("aicp-team-forge","aicp-team-compass","aicp-team-heimdall") AND resolved >= -180d` |
 | Onboarding | `component in (...) AND (summary ~ "operator integration" OR "Batch Gateway" OR "Agents Operator")` |
 | EA1 sign-off | `component in (...) AND summary ~ "Sign-Off"` |
-| Bet descriptions | Individual `GET /rest/api/3/issue/{key}` for RHAISTRAT-1471, RHAISTRAT-1470, RHAISTRAT-1519 |
+| DRA / GPUaaS issues | `component in (...) AND (summary ~ "DRA" OR "GPUaaS" OR "Dynamic Resource Allocation")` |
+| Bet descriptions | Individual `GET /rest/api/3/issue/{key}` for RHAISTRAT-1471, RHAISTRAT-1470, RHAISTRAT-1519 (descriptions + status/priority) |
 | Spreadsheet | `aicp_feature_priorities.xlsx` parsed for owned/support features |
 
 Unlabeled in-flight issues are derived from the in-flight result set, not a separate query.
@@ -511,7 +512,7 @@ Unlabeled in-flight issues are derived from the in-flight result set, not a sepa
 |-------|-------------|
 | All open | `component = "AI Hub" AND status NOT IN (Closed, Resolved, Done, Cancelled)` |
 | Resolved | `component = "AI Hub" AND resolved >= -180d` |
-| Bet descriptions | Individual `GET /rest/api/3/issue/{key}` for RHOAIENG-50747, RHOAIENG-63382, RHOAIENG-60367 |
+| Bet descriptions | Individual `GET /rest/api/3/issue/{key}` for RHOAIENG-50747, RHOAIENG-63382, RHOAIENG-63350, RHOAIENG-60367 (descriptions + status/priority) |
 
 In-flight, blockers, CVEs, and undefined priority are all derived from the all-open result set.
 
@@ -598,6 +599,8 @@ def bet_slide(title, signal_text, win_text, subtitle=None):
     # right: "Why this is ours to win" label at (6.7, 1.35), text at (6.7, 1.75)
 ```
 
+Each bet's `subtitle` is dynamic — fetched from the Jira API at generation time using `get_strat_status()` (AICP) or `get_issue_status()` (AI Hub) to show current priority and status. Never hardcode status values in subtitles.
+
 Each bet's `signal_text` combines a hardcoded framing paragraph with live RHAISTRAT description text appended via `extract_text()` on ADF JSON. The hardcoded framing provides curated customer context; the live description adds current RHAISTRAT scope and status. Never invent customers, deal counts, or customer names.
 
 Current bets:
@@ -636,11 +639,11 @@ Look for in the extracted text: named customers, deal counts, geographic segment
 
 ### Slide 13: What We Need
 
-Five data-backed asks, each tied to evidence from earlier slides:
-1. Multi-Tenancy resourcing (RHAISTRAT-1471 Critical, 0 active engineering)
-2. DRA / GPUaaS engineering alignment (RHAISTRAT-1470 In Progress, only backlog issues)
-3. Upgrade CI infrastructure (RHAISTRAT-1519 + supporting RHOAIENG count)
-4. Blocker escalation (blocker count + critical count + top named blockers)
+Five data-backed asks, each tied to evidence from earlier slides. All values are dynamic — pulled from live Jira API data at generation time:
+1. Multi-Tenancy resourcing (RHAISTRAT-1471 live priority/status)
+2. DRA / GPUaaS engineering alignment (RHAISTRAT-1470 live status + DRA issue count from query)
+3. Upgrade CI infrastructure (RHAISTRAT-1519 live priority + upgrade issue count)
+4. Blocker escalation (blocker/critical counts + top 3 blocker names from query)
 5. Sub-team triage — in-flight issues without any `aicp-team-*` label need ownership assignment
 
 Needs come **only from data** — never invented.
