@@ -357,14 +357,17 @@ bet_slide(
            "Tiger team is actively investigating MLflow as the backbone for a unified AI asset registry.")
     ),
     win_text=(
-        "AI Hub owns Model Registry — and owns the migration path. Moving to MLflow as the backend "
-        "means the team leads the architectural decision that shapes how RHOAI manages AI assets for "
-        "the next 3+ years.\n\n"
-        "Current state: Tiger team research complete (RHOAIENG-50747). MLflow tracking store PR rebased "
-        "upstream (RHOAIENG-31396). RFC in progress (RHOAIENG-57652). Next step: committing to a "
-        "migration architecture and engineering plan.\n\n"
-        "Risk: Without a decision, teams continue building on top of Kubeflow Model Registry — "
-        "accruing integration debt that becomes harder to migrate later."
+        "AI Hub is positioned to become the unified AI asset platform for RHOAI — not just models, "
+        "but MCP servers, skills, and agents on a shared MLflow backend with domain-specific APIs "
+        "per asset type.\n\n"
+        "Three pillars: (1) Catalog Delivery — model catalog as the primary product with validation "
+        "and benchmarking data; (2) Central Registry Platform — shared storage, versioning, identity, "
+        "and access control that other teams extend by contributing asset type schemas via MLflow RFC; "
+        "(3) AI Asset Trust & Provenance — cryptographic signing, AI-BOMs, and Red Hat Secured badge.\n\n"
+        "Engagement model: contributing teams propose schemas via PR, AI Hub reviews for consistency "
+        "and maintains the midstream repo and CI/CD. This scales without AI Hub becoming a bottleneck.\n\n"
+        "Risk: Without a decision, teams build separate registries per asset type — duplicating "
+        "discovery, identity, and access control infrastructure across the org."
     )
 )
 
